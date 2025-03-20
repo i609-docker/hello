@@ -1,0 +1,33 @@
+name: CC Workflow
+
+on:
+ - push
+ - pull_request
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: make
+      run: make hello
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: hello_exe
+        path: ./hello
+
+  test:
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Download a Build Artifact
+        uses: actions/download-artifact@v4
+        with: 
+          name: hello_exe
+      - name: fix perm
+        run: chmod a+x ./hello
+      - name: test default
+        run: ./hello && test "$(./hello)" = "Hello World !"
+      - name: test with name
+        run: ./hello Joe && test "$(./hello Joe)" = "Hello Joe !"
