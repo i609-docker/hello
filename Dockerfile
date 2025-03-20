@@ -1,4 +1,4 @@
-FROM gcc:14 AS build
+FROM docker.io/library/gcc:14 AS build
 COPY ./hello.c /src/
 WORKDIR /src/
 RUN gcc -static -o hello hello.c
