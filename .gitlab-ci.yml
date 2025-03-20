@@ -1,0 +1,51 @@
+stages:
+  - build
+  - test
+  - images
+
+build:
+  image: gcc:14.2.0-bookworm
+  stage: build
+  script:
+    - make hello
+  artifacts:
+    paths:
+      - hello
+
+test:
+  image: debian:12-slim
+  stage: test
+  script:
+    - ./hello && test "$(./hello)" = "Hello World !"
+    - ./hello Joe && test "$(./hello Joe)" = "Hello Joe !"
+  needs:
+    - job: build
+      artifacts: true
+
+images:
+  image: docker:28.0.1-cli
+  stage: images
+  services:
+    - docker:28.0.1-dind
+  script:
+    - docker login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD} ${CI_REGISTRY}
+    - docker build -t ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}-docker
+      --target prod .
+    - docker push ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}-docker
+  only:
+    - main
+    - develop
+    - tags
+
+images-alt:
+  image: quay.io/buildah/stable:v1.38.1
+  stage: images
+  script:
+    - buildah login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD} ${CI_REGISTRY}
+    - buildah build --format docker  -t ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}-buildah
+      --target prod .
+    - buildah push ${CI_REGISTRY_IMAGE}:${CI_COMMIT_REF_NAME}-buildah
+  only:
+    - main
+    - develop
+    - tags
